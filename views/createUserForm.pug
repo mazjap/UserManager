@@ -11,7 +11,7 @@ html(lang="en")
         title= titleText
     body
         h3= "Create Account"
-        form(action="/createAccount", method="POST")
+        form(action="/createUser", method="POST")
             +labelInputPair("Name", "text", "name", "John Smith")
             +labelInputPair("Email", "text", "email", "johnsmith@hotmail.com")
             +labelInputPair("Age", "text", "age", "27")

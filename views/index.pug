@@ -10,18 +10,12 @@ html(lang="en")
     body
         h3= titleText
         ul
-            if (user)
-                li
-                    a(href="/users", value="Users")
-                li
-                    a(href="/user/#{user.id}", value="View Account")
-                li
-                    a(href="/logout", value="Logout")
-            else
-                li
-                    a(href="/signup") Create Account
-                li
-                    a(href="/login") Login
+            li
+                a(href="/create") Create User
+            li
+                a(href="/find") Find User
+            li
+                a(href="/users") User List
 
 
 //- Attributes:

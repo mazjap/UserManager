@@ -11,7 +11,19 @@ let current
 const usersDbFileName = "usrDb.json"
 
 if (fs.existsSync(path.join(__dirname, usersDbFileName))) {
-    usersFile = require("usrDb.json") // Security is not an issue at this point
+    usersFile = require(path.join(__dirname, usersDbFileName)) // Security is not an issue at this point
+}
+
+function getRefererPath(referer, origin) {
+    const link = referer.split(origin).join('')
+
+    console.log(link)
+
+    return link
+}
+
+function getRefererPathUsingRequest(request) {
+    return getRefererPath(request.headers.referer, request.headers.origin)
 }
 
 function setup(app) {
@@ -38,56 +50,151 @@ function createListeners(app) {
         })
     })
 
-    // app.get("/users", (req, res) => {
-    //     res.render("users", { users })
-    // })
+    app.get("/users", (req, res) => {
+        res.render("users", { users })
+    })
 
-    // app.get("/user/:id", (req, res) => {
-    //     const id = req.params.id
-    //     const user = users.find((usr) => usr.id === id)
+    app.get("/user/:id", (req, res) => {
+        const id = req.params.id
 
-    //     if (user) {
-    //         res.render("userDetails", { user })
-    //     } else {
-    //     }
-    // })
+        if (!id) {
+            res.render("errorScreen", {
+                message: "You must provide an id: url.com/user/SOME-ID-HERE",
+                link: getRefererPathUsingRequest(req)
+            })
+        }
 
-    app.get("/signup", (req, res) => {
+        const user = users.find((usr) => usr.id === id)
+
+        if (user) {
+            res.render("userDetails", { user })
+        } else {
+            res.render("errorScreen", {
+                message: "User with id " + id + " does not exist",
+                link: getRefererPathUsingRequest(req)
+            })
+        }
+    })
+
+    app.get("/create", (req, res) => {
         res.render("createUserForm")
     })
 
-    app.get("/login", (req, res) => {
-        res.render("logUserInForm")
+    app.get("/find", (req, res) => {
+        res.render("findAccountForm")
     })
 
-    app.post("/createAccount", createAccount)
+    app.post("/createUser", createAccount)
+    app.post("/search", search)
+    app.post("/updateUser", updateUser)
 
     return app
 }
 
 function createAccount(req, res) {
-    console.log(req.body)
+    const { name, email, age } = req.body
+    const refererPath = getRefererPathUsingRequest(req)
+    
+    // Error handling
+    if (users.find(usr => usr.email === email)) {
+        res.render("errorScreen", {
+            message: "Email has already been taken",
+            link: refererPath
+        })
+    } else if (!age) {
+        res.render("errorScreen", {
+            message: "Age cannot be empty",
+            link: refererPath
+        })
+    } else { // The magic
+        const user = new User(name, email, age)
+        current = user
+        users.push(user)
+        res.redirect("/user/" + user.id)
+    }
+}
+
+function search(req, res) {
+    const email = req.body.email
+    const user = users.find((usr => usr.email === email))
+    const link = getRefererPathUsingRequest(req)
+
+    if (!email) {
+        res.render("errorScreen", {
+            message: "Email cannot be empty",
+            link
+        })
+    } else if (!user) {
+        res.render("errorScreen", {
+            message: "Email cannot be empty",
+            link
+        })
+    } else {
+        current = user
+
+        res.redirect("/user/" + user.id)
+    }
+}
+
+function updateUser(req, res) {
+    const id = req.body.id
+    const name = req.body.name
+    const email = req.body.email
+    const age = req.body.age
+    const index = users.findIndex(usr => usr.id === id)
+    const link = getRefererPathUsingRequest(req)
+
+    if (!id) {
+        res.render("errorScreen", {
+            message: "Id was nil",
+            link
+        })
+    } else if (index === -1) {
+        res.render("errorScreen", {
+            message: "User with id " + id + " could not be found",
+            link
+        })
+    } else {
+        if (name) {
+            users[index].name = name
+        }
+
+        if (email) {
+            users[index].email = email
+        }
+
+        if (age) {
+            users[index].age = age
+        }
+
+        res.redirect("/user/" + id)
+    }
 }
 
 function addEndLogic(app) {
-    process.on('exit', function() {
+    const endAction = () => {
         const obj = {
             current,
             users
         }
 
         fs.writeFileSync(path.join(__dirname, usersDbFileName), JSON.stringify(obj))
-    })
+        process.exit()
+    }
+
+    for (const processEvent of ["exit", "SIGINT", "SIGUSR1", "SIGUSR2", "uncaughtException"]) {
+        process.on(processEvent, endAction)
+    }
 
     return app
 }
 
-function start(app, port=3000) {
-    app.listen(port, () => {
-        console.log("App listening on port 3000")
-    })
-
-    return app
+function closeServer() {
+    server.close()
 }
 
-start(addEndLogic(createListeners(setup(express()))))
+const port = 3000
+
+var server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
+    console.log(console.log("App listening on port " + port))
+})

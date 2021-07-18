@@ -12,8 +12,8 @@ html(lang="en")
         ul 
             each usr in users
                 li 
-                    a(href="/user/#{usr.id}")
-                        div 
+                    a(href="/user/" + usr.id)
+                        div
                             h5= "Name: " + usr.name 
                             p= "Email: " + usr.email 
                             p= "Age: " + usr.age 

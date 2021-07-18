@@ -1,6 +1,6 @@
 include labelInputPair.pug
 
-var titleText = "#{user.name}"
+- var titleText = user.name
 
 doctype html
 html(lang="en")
@@ -10,10 +10,14 @@ html(lang="en")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title= titleText
     body 
-        div
-            h3= titleText
-            button(type="button" value="Delete")
-        p= "Id: " + user.id
-         +labelInputPair("Email", "text", "email", "#{user.email}")
-         +labelInputPair("Age", "text", "age", "#{user.age}")
+        form(action="/updateUser", method="post")
+            div 
+                +labelInputPair("Name", "text", "name", user.name, user.name, false)
+                button(type="button") Delete
+            p= "Id: " + user.id
+            +labelInputPair("Email", "text", "email", user.email, user.email, false)
+            +labelInputPair("Age", "text", "age", user.age, user.age, false)
+            // Hidden form id value
+            input(type="hidden", name="id", value=user.id)
+            button(type="submit") Submit Changes
         

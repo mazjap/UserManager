@@ -1,4 +1,4 @@
-mixin labelInputPair(label, inputType, inputName, placeholder, required= true)
+mixin labelInputPair(label, inputType, inputName, placeholder, value=null, required=true)
     div.inlined
         p= label
-        input(type= inputType, name= inputName, placeholder= placeholder, required="#{required}")
+        input(type=inputType, name=inputName, placeholder=placeholder, value=value, required=required)
