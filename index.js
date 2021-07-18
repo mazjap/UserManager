@@ -1,7 +1,6 @@
 const User = require("./user")
 const fs = require("fs")
 const express = require("express")
-const session = require("express-session")
 const path = require("path")
 
 let usersFile
@@ -12,6 +11,18 @@ const usersDbFileName = "usrDb.json"
 
 if (fs.existsSync(path.join(__dirname, usersDbFileName))) {
     usersFile = require(path.join(__dirname, usersDbFileName)) // Security is not an issue at this point
+}
+
+const directories = {
+    index: () => "/",
+    create: () => "/create",
+    users: () => "/users",
+    find: () => "/find",
+    user: (paramName) => "/user/:" + paramName,
+    delete: (paramName) => "/delete/:" + paramName,
+    postUpdate: () => "/update",
+    postFindUser: () => "/search",
+    postCreateUser: () => "/createUser"
 }
 
 function getRefererPath(referer, origin) {
@@ -30,7 +41,7 @@ function setup(app) {
     app.set("views", path.join(__dirname, "views"))
     app.set("view engine", "pug")
 
-    app.use(express.urlencoded())
+    app.use(express.urlencoded({ extended: true }))
 
     if (usersFile) {
         for (const usr of usersFile["users"]) {
@@ -44,17 +55,17 @@ function setup(app) {
 }
 
 function createListeners(app) {
-    app.get("/", (req, res) => {
+    app.get(directories.index(), (req, res) => {
         res.render("index", {
             user: (current ? users.find((usr) => usr.id === current) : null)
         })
     })
 
-    app.get("/users", (req, res) => {
+    app.get(directories.users(), (req, res) => {
         res.render("users", { users })
     })
 
-    app.get("/user/:id", (req, res) => {
+    app.get(directories.user("id"), (req, res) => {
         const id = req.params.id
 
         if (!id) {
@@ -76,17 +87,18 @@ function createListeners(app) {
         }
     })
 
-    app.get("/create", (req, res) => {
+    app.get(directories.create(), (req, res) => {
         res.render("createUserForm")
     })
 
-    app.get("/find", (req, res) => {
+    app.get(directories.find(), (req, res) => {
         res.render("findAccountForm")
     })
 
-    app.post("/createUser", createAccount)
-    app.post("/search", search)
-    app.post("/updateUser", updateUser)
+    app.post(directories.postCreateUser(), createAccount)
+    app.post(directories.postFindUser(), search)
+    app.post(directories.postUpdate(), updateUser)
+    app.post(directories.delete("id"), deleteUser)
 
     return app
 }
@@ -126,7 +138,7 @@ function search(req, res) {
         })
     } else if (!user) {
         res.render("errorScreen", {
-            message: "Email cannot be empty",
+            message: "User with email " + email + " could not be found.",
             link
         })
     } else {
@@ -171,6 +183,26 @@ function updateUser(req, res) {
     }
 }
 
+function deleteUser(req, res) {
+    const id = req.params.id
+    const index = users.findIndex((usr) => usr.id === id)
+
+    if (!id) {
+        res.render("errorScreen", {
+            message: "Id was nil",
+            link
+        })
+    } else if (index === -1) {
+        res.render("errorScreen", {
+            message: "User with id " + id + " could not be found",
+            link
+        })
+    } else {
+        users.splice(index, 1)
+        res.redirect("/users")
+    }
+}
+
 function addEndLogic(app) {
     const endAction = () => {
         const obj = {
@@ -196,5 +228,5 @@ function closeServer() {
 const port = 3000
 
 var server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
-    console.log(console.log("App listening on port " + port))
+    console.log("App listening on port " + port)
 })

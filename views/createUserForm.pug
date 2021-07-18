@@ -10,7 +10,9 @@ html(lang="en")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title= titleText
     body
-        h3= "Create Account"
+        div
+            h3= "Create Account"
+            +homeButton()
         form(action="/createUser", method="POST")
             +labelInputPair("Name", "text", "name", "John Smith")
             +labelInputPair("Email", "text", "email", "johnsmith@hotmail.com")

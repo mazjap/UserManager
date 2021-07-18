@@ -10,7 +10,9 @@ html(lang="en")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title= titleText
     body
-        h3= "Find Account"
+        div
+            h3= "Find Account"
+            +homeButton()
         form(action="/search", method="POST")
             +labelInputPair("Email", "text", "email", "johnsmith@hotmail.com")
-            button(type="submit") Login
+            button(type="submit") Find

@@ -1,3 +1,5 @@
+include labelInputPair.pug
+
 doctype html
 html(lang="en")
     head
@@ -9,4 +11,5 @@ html(lang="en")
         div
             h3= "There was an error"
             a(href=link) Go back
+            +homeButton()
         p= "Error message: " + message 

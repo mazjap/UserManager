@@ -9,11 +9,13 @@ html(lang="en")
         meta(http-equiv="X-UA-Compatible", content="IE=edge")
         meta(name="viewport", content="width=device-width, initial-scale=1.0")
         title= titleText
-    body 
-        form(action="/updateUser", method="post")
-            div 
-                +labelInputPair("Name", "text", "name", user.name, user.name, false)
-                button(type="button") Delete
+    body
+        div
+            +homeButton()
+            form(action="/delete/" + user.id, method="post")
+                button(type="submit") Delete
+        form(action="/update", method="post")
+            +labelInputPair("Name", "text", "name", user.name, user.name, false)
             p= "Id: " + user.id
             +labelInputPair("Email", "text", "email", user.email, user.email, false)
             +labelInputPair("Age", "text", "age", user.age, user.age, false)
