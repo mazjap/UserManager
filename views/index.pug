@@ -1,0 +1,48 @@
+- var titleText = "User Manager"
+
+doctype html
+html(lang="en")
+    head
+        meta(charset="UTF-8")
+        meta(http-equiv="X-UA-Compatible", content="IE=edge")
+        meta(name="viewport", content="width=device-width, initial-scale=1.0")
+        title= titleText
+    body
+        h3= titleText
+        ul
+            if (user)
+                li
+                    a(href="/users", value="Users")
+                li
+                    a(href="/user/#{user.id}", value="View Account")
+                li
+                    a(href="/logout", value="Logout")
+            else
+                li
+                    a(href="/signup") Create Account
+                li
+                    a(href="/login") Login
+
+
+//- Attributes:
+//- Two ways to add attributes to an element 
+//- 1. p(id="myId", class="myClass")
+//- 2. p#myId.myClass // Only for ids and classes
+//- Both do the same thing, although the first one can do more
+
+//- Variables: 
+//- Passed in when express' render function contains a second object parameter
+//- Two ways to display variables 
+//- 1. p= message - Setting the content of the element
+//- 2. p Soccer #{newMessage} - String interpolation
+
+//- Each-in:
+//- ul
+//-     each val in [1, 2, 3] - a hardcoded array is used here, but any variable could be used
+//-         li= val
+//- Result: 
+//- <ul>
+//-     <li>1</li>
+//-     <li>2</li>
+//-     <li>3</li>
+//- </ul>
