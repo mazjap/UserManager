@@ -14,23 +14,39 @@ html(lang="en")
             h3= titleText
             +homeButton()
 
-            p=Sort
+            p="Sort"
 
             form(action="/users/firstName", method="get")
                 input(type="hidden", name="firstName", value="firstName")
-                button(type="submit") First Name
+                button(type="submit") First Name Ascending
+
+            form(action="/users/-firstName", method="get")
+                input(type="hidden", name="firstName", value="firstName")
+                button(type="submit") First Name Descending
 
             form(action="/users/lastName", method="get")
                 input(type="hidden", name="lastName", value="lastName")
-                button(type="submit") Last Name
+                button(type="submit") Last Name Ascending
+
+            form(action="/users/-lastName", method="get")
+                input(type="hidden", name="lastName", value="lastName")
+                button(type="submit") Last Name Descending
             
             form(action="/users/email", method="get")
                 input(type="hidden", name="email", value="email")
-                button(type="submit") Email 
+                button(type="submit") Email Ascending
+
+            form(action="/users/-email", method="get")
+                input(type="hidden", name="email", value="email")
+                button(type="submit") Email Descending
 
             form(action="/users/age", method="get")
                 input(type="hidden", name="age", value="age")
-                button(type="submit") Age
+                button(type="submit") Age Ascending
+
+            form(action="/users/-age", method="get")
+                input(type="hidden", name="age", value="age")
+                button(type="submit") Age Descending
         if users.length > 0
             ul 
                 each usr in users

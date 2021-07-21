@@ -18,7 +18,7 @@ const directories = {
     index: () => "/",
     create: () => "/create",
     users: () => "/users",
-    sortedUsers: (paramName) => "/users/:" + paramName,
+    sortedUsers: (firstParamName) => "/users/:" + firstParamName,
     find: () => "/find",
     user: (paramName) => "/user/:" + paramName,
     delete: (paramName) => "/delete/:" + paramName,
@@ -66,7 +66,8 @@ function createListeners(app) {
     })
 
     app.get(directories.sortedUsers("sortedBy"), (req, res) => {
-        const validSortKeys = ["firstName", "lastName", "email", "age"]
+        const keys = ["firstName", "lastName", "email", "age"]
+        const validSortKeys = [...keys, ...keys.map(key => "-" + key)]
         const sortKey = req.params.sortedBy
         
         if (validSortKeys.includes(sortKey)) {
