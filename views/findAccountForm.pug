@@ -14,5 +14,6 @@ html(lang="en")
             h3= "Find Account"
             +homeButton()
         form(action="/search", method="POST")
-            +labelInputPair("Email", "text", "email", "johnsmith@hotmail.com")
+            +labelInputPair("First name", "text", "firstName", "John", null, false)
+            +labelInputPair("Last name", "text", "lastName", "Smith", null, false)
             button(type="submit") Find

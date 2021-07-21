@@ -1,17 +1,18 @@
-const User = require("./user")
+const userSchema = require("./user")
 const fs = require("fs")
 const express = require("express")
 const path = require("path")
+const mongoose = require("mongoose")
 
-let usersFile
-let users = []
-let current
+const dbUrl = "mongodb://localhost/userManagement"
 
-const usersDbFileName = "usrDb.json"
+mongoose.connect(dbUrl, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true 
+})
 
-if (fs.existsSync(path.join(__dirname, usersDbFileName))) {
-    usersFile = require(path.join(__dirname, usersDbFileName)) // Security is not an issue at this point
-}
+dbSetup(mongoose.connection)
+const User = mongoose.model("User", userSchema)
 
 const directories = {
     index: () => "/",
@@ -41,28 +42,36 @@ function setup(app) {
     app.set("views", path.join(__dirname, "views"))
     app.set("view engine", "pug")
 
+    app.use(express.json())
     app.use(express.urlencoded({ extended: true }))
-
-    if (usersFile) {
-        for (const usr of usersFile["users"]) {
-            users.push(usr)
-        }
-    
-        current = usersFile["current"]
-    }
 
     return app
 }
 
+function dbSetup(connection) {
+    connection.on("error", console.error.bind(console, "Connection error: "))
+    connection.once("open", () => {
+        console.log("Database connected")
+    })
+}
+
 function createListeners(app) {
     app.get(directories.index(), (req, res) => {
-        res.render("index", {
-            user: (current ? users.find((usr) => usr.id === current) : null)
-        })
+        res.render("index")
     })
 
     app.get(directories.users(), (req, res) => {
-        res.render("users", { users })
+        User.find({}, (error, data) => {
+            if (error) {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
+            } else {
+                console.log(data)
+                res.render("users", { users : data })
+            }
+        })
     })
 
     app.get(directories.user("id"), (req, res) => {
@@ -75,16 +84,22 @@ function createListeners(app) {
             })
         }
 
-        const user = users.find((usr) => usr.id === id)
-
-        if (user) {
-            res.render("userDetails", { user })
-        } else {
-            res.render("errorScreen", {
-                message: "User with id " + id + " does not exist",
-                link: getRefererPathUsingRequest(req)
-            })
-        }
+        User.findOne({ _id : id }, (error, data) => {
+            if (error) {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
+                return
+            } else if (data) {
+                res.render("userDetails", { user : data })
+            } else {
+                res.render("errorScreen", {
+                    message: "User with id " + id + " does not exist",
+                    link: getRefererPathUsingRequest(req)
+                })
+            }
+        })
     })
 
     app.get(directories.create(), (req, res) => {
@@ -104,56 +119,83 @@ function createListeners(app) {
 }
 
 function createAccount(req, res) {
-    const { name, email, age } = req.body
-    const refererPath = getRefererPathUsingRequest(req)
-    
-    // Error handling
-    if (users.find(usr => usr.email === email)) {
-        res.render("errorScreen", {
-            message: "Email has already been taken",
-            link: refererPath
-        })
-    } else if (!age) {
-        res.render("errorScreen", {
-            message: "Age cannot be empty",
-            link: refererPath
-        })
-    } else { // The magic
-        const user = new User(name, email, age)
-        current = user
-        users.push(user)
-        res.redirect("/user/" + user.id)
-    }
+    const { firstName, lastName, email, age } = req.body
+    const link = getRefererPathUsingRequest(req)
+
+    User.findOne({ email : email }, (error, data) => {
+        if (error) {
+            res.render("errorScreen", {
+                message: error.toString(),
+                link
+            })
+        } else if (data) {
+            console.log(data)
+            res.render("errorScreen", {
+                message: "Email has already been taken",
+                link
+            })
+        } else {
+            const newUser = new User({
+                firstName: firstName,
+                lastName: lastName,
+                email: email,
+                age: age
+            })
+
+            newUser.save((error, data) => {
+                if (error) {
+                    res.render("errorScreen", {
+                        message: error.toString(),
+                        link
+                    })
+                } else {
+                    console.log(data)
+                    res.redirect("/user/" + user._id)
+                }
+            })
+        }
+    })
 }
 
 function search(req, res) {
-    const email = req.body.email
-    const user = users.find((usr => usr.email === email))
+    const { firstName, lastName } = req.body
     const link = getRefererPathUsingRequest(req)
 
-    if (!email) {
-        res.render("errorScreen", {
-            message: "Email cannot be empty",
-            link
-        })
-    } else if (!user) {
-        res.render("errorScreen", {
-            message: "User with email " + email + " could not be found.",
-            link
-        })
-    } else {
-        current = user
+    let filter = {}
 
-        res.redirect("/user/" + user.id)
+    if (firstName) {
+        filter["firstName"] = firstName
     }
+
+    if (lastName) {
+        filter["lastName"] = lastName
+    }
+
+    User.findOne(filter, (error, data) => {
+        if (error) { 
+            res.render("errorScreen", {
+                message: error.toString(),
+                link
+            })
+        } else if (data) {
+            console.log(data)
+            res.redirect("/user/" + data.id)
+        } else {
+            res.render("errorScreen", {
+                message: "No user with firstName: " + firstName + ", lastName: " + lastName,
+                link
+            })
+        }
+
+    })
 }
 
 function updateUser(req, res) {
     const id = req.body.id
-    const name = req.body.name
+    const firstName = req.body.firstName
+    const lastName = req.body.lastName
     const email = req.body.email
     const age = req.body.age
-    const index = users.findIndex(usr => usr.id === id)
     const link = getRefererPathUsingRequest(req)
 
     if (!id) {
@@ -161,56 +203,52 @@ function updateUser(req, res) {
             message: "Id was nil",
             link
         })
-    } else if (index === -1) {
+    } else if (isNaN(age)) {
         res.render("errorScreen", {
-            message: "User with id " + id + " could not be found",
+            message: "Age must be a number",
             link
         })
     } else {
-        if (name) {
-            users[index].name = name
-        }
+        User.findOneAndUpdate({ _id : id }, { firstName, lastName, email, age }, { new : true }, (error, data) => {
+            if (error) {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
+                return
+            }
 
-        if (email) {
-            users[index].email = email
-        }
-
-        if (age) {
-            users[index].age = age
-        }
-
-        res.redirect("/user/" + id)
+            console.log(data)
+    
+            res.redirect("/user/" + id)
+        })
     }
 }
 
 function deleteUser(req, res) {
     const id = req.params.id
-    const index = users.findIndex((usr) => usr.id === id)
 
     if (!id) {
         res.render("errorScreen", {
             message: "Id was nil",
             link
         })
-    } else if (index === -1) {
-        res.render("errorScreen", {
-            message: "User with id " + id + " could not be found",
-            link
-        })
     } else {
-        users.splice(index, 1)
-        res.redirect("/users")
+        User.deleteOne({ _id : id }, (error) => {
+            if (error) {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
+            } else {
+                res.redirect("/users")
+            }
+        })
     }
 }
 
 function addEndLogic(app) {
     const endAction = () => {
-        const obj = {
-            current,
-            users
-        }
-
-        fs.writeFileSync(path.join(__dirname, usersDbFileName), JSON.stringify(obj))
         process.exit()
     }
 
@@ -225,7 +263,7 @@ function closeServer() {
     server.close()
 }
 
-const port = 3000
+const port = process.env.PORT || 3000
 
 var server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
     console.log("App listening on port " + port)

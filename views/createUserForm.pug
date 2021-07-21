@@ -14,7 +14,8 @@ html(lang="en")
             h3= "Create Account"
             +homeButton()
         form(action="/createUser", method="POST")
-            +labelInputPair("Name", "text", "name", "John Smith")
+            +labelInputPair("First name", "text", "firstName", "John")
+            +labelInputPair("Last Name", "text", "lastName", "Smith")
             +labelInputPair("Email", "text", "email", "johnsmith@hotmail.com")
             +labelInputPair("Age", "text", "age", "27")
             button(type="submit") Create Account

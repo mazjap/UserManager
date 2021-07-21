@@ -19,7 +19,7 @@ html(lang="en")
                     li 
                         a(href="/user/" + usr.id)
                             div
-                                h5= "Name: " + usr.name 
+                                h5= "Name: " + usr.firstName + " " + usr.lastName 
                                 p= "Email: " + usr.email 
                                 p= "Age: " + usr.age
                                 form(action="/delete/" + usr.id, method="post")
