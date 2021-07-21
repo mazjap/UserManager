@@ -10,6 +10,12 @@ After cloning the project, switch to the mongo branch
 git checkout mongo
 ```
 
+Install modules
+
+```bash
+npm install
+```
+
 Start the program
 
 ```bash
