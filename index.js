@@ -18,6 +18,7 @@ const directories = {
     index: () => "/",
     create: () => "/create",
     users: () => "/users",
+    sortedUsers: (paramName) => "/users/:" + paramName,
     find: () => "/find",
     user: (paramName) => "/user/:" + paramName,
     delete: (paramName) => "/delete/:" + paramName,
@@ -61,17 +62,32 @@ function createListeners(app) {
     })
 
     app.get(directories.users(), (req, res) => {
-        User.find({}, (error, data) => {
-            if (error) {
-                res.render("errorScreen", {
-                    message: error.toString(),
-                    link
-                })
-            } else {
-                console.log(data)
-                res.render("users", { users : data })
-            }
-        })
+        res.redirect("/users/firstName")
+    })
+
+    app.get(directories.sortedUsers("sortedBy"), (req, res) => {
+        const validSortKeys = ["firstName", "lastName", "email", "age"]
+        const sortKey = req.params.sortedBy
+        
+        if (validSortKeys.includes(sortKey)) {
+            User.find({}, (error, data) => {
+                if (error) {
+                    res.render("errorScreen", {
+                        message: error.toString(),
+                        link
+                    })
+                } else {
+                    console.log(data)
+                    res.render("users", { users : data })
+                }
+            }).sort(`${sortKey}`)
+        } else {
+            res.render("errorScreen", {
+                message: "/users/" + sortKey + " is not a valid filter path.",
+                link
+            })
+        }
+
     })
 
     app.get(directories.user("id"), (req, res) => {
@@ -129,7 +145,6 @@ function createAccount(req, res) {
                 link
             })
         } else if (data) {
-            console.log(data)
             res.render("errorScreen", {
                 message: "Email has already been taken",
                 link
@@ -142,15 +157,14 @@ function createAccount(req, res) {
                 age: age
             })
 
-            newUser.save((error, data) => {
+            newUser.save((error) => {
                 if (error) {
                     res.render("errorScreen", {
                         message: error.toString(),
                         link
                     })
                 } else {
-                    console.log(data)
-                    res.redirect("/user/" + user._id)
+                    res.redirect("/user/" + newUser._id)
                 }
             })
         }

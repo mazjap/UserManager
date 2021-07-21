@@ -13,6 +13,24 @@ html(lang="en")
         div
             h3= titleText
             +homeButton()
+
+            p=Sort
+
+            form(action="/users/firstName", method="get")
+                input(type="hidden", name="firstName", value="firstName")
+                button(type="submit") First Name
+
+            form(action="/users/lastName", method="get")
+                input(type="hidden", name="lastName", value="lastName")
+                button(type="submit") Last Name
+            
+            form(action="/users/email", method="get")
+                input(type="hidden", name="email", value="email")
+                button(type="submit") Email 
+
+            form(action="/users/age", method="get")
+                input(type="hidden", name="age", value="age")
+                button(type="submit") Age
         if users.length > 0
             ul 
                 each usr in users
