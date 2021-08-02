@@ -1,18 +1,15 @@
 const userSchema = require("./user")
-const fs = require("fs")
 const express = require("express")
 const path = require("path")
-const mongoose = require("mongoose")
+const { Pool } = require("pg")
 
-const dbUrl = "mongodb://localhost/userManagement"
+const dbUrl = "postgres://postgres:postgress@localhost:5432/user"
 
-mongoose.connect(dbUrl, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true 
+const pool = new Pool({
+    connectionString: dbUrl,
 })
 
-dbSetup(mongoose.connection)
-const User = mongoose.model("User", userSchema)
+dbSetup(pool.connect())
 
 const directories = {
     index: () => "/",
@@ -28,11 +25,7 @@ const directories = {
 }
 
 function getRefererPath(referer, origin) {
-    const link = referer.split(origin).join('')
-
-    console.log(link)
-
-    return link
+    return referer.split(origin).join('')
 }
 
 function getRefererPathUsingRequest(request) {
@@ -50,10 +43,8 @@ function setup(app) {
 }
 
 function dbSetup(connection) {
-    connection.on("error", console.error.bind(console, "Connection error: "))
-    connection.once("open", () => {
-        console.log("Database connected")
-    })
+    connection.then(() => console.log("Database connected"))
+    .catch(error => console.log(error))
 }
 
 function createListeners(app) {
@@ -71,24 +62,32 @@ function createListeners(app) {
         const sortKey = req.params.sortedBy
         
         if (validSortKeys.includes(sortKey)) {
-            User.find({}, (error, data) => {
-                if (error) {
-                    res.render("errorScreen", {
-                        message: error.toString(),
-                        link
-                    })
-                } else {
-                    console.log(data)
-                    res.render("users", { users : data })
-                }
-            }).sort(`${sortKey}`)
+            let query = "select * from users order by "
+
+            if (sortKey[0] === "-") {
+                query += sortKey.slice(1) + " DESC"
+            } else {
+                query += sortKey + " ASC"
+            }
+
+            pool.query(query)
+            .then(users => {
+                console.log(users)
+                res.render("users", { users })
+            })
+            .catch(error => {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
+            })
+            .finally(() => console.log("Users sorted by " + sortKey + " requested"))
         } else {
             res.render("errorScreen", {
                 message: "/users/" + sortKey + " is not a valid filter path.",
                 link
             })
         }
-
     })
 
     app.get(directories.user("id"), (req, res) => {
@@ -101,14 +100,10 @@ function createListeners(app) {
             })
         }
 
-        User.findOne({ _id : id }, (error, data) => {
-            if (error) {
-                res.render("errorScreen", {
-                    message: error.toString(),
-                    link
-                })
-                return
-            } else if (data) {
+        pool.query("select * from users where id = $1", [id])
+        .then((user => {
+            console.log("Array or single user object? " + user)
+            if (user) {
                 res.render("userDetails", { user : data })
             } else {
                 res.render("errorScreen", {
@@ -116,7 +111,15 @@ function createListeners(app) {
                     link: getRefererPathUsingRequest(req)
                 })
             }
+        }))
+        .catch(error => {
+            console.log("Error for no response? " + error.message)
+            res.render("errorScreen", {
+                message: error.message,
+                link: getRefererPathUsingRequest(req)
+            })
         })
+        .finally(() => console.log("User with id " + id + " requested"))
     })
 
     app.get(directories.create(), (req, res) => {
@@ -139,61 +142,70 @@ function createAccount(req, res) {
     const { firstName, lastName, email, age } = req.body
     const link = getRefererPathUsingRequest(req)
 
-    User.findOne({ email : email }, (error, data) => {
-        if (error) {
-            res.render("errorScreen", {
-                message: error.toString(),
-                link
-            })
-        } else if (data) {
+    pool.query("select email from users where email = $1", [email])
+    .then(data => {
+        if (data) {
             res.render("errorScreen", {
                 message: "Email has already been taken",
                 link
             })
         } else {
-            const newUser = new User({
-                firstName: firstName,
-                lastName: lastName,
-                email: email,
-                age: age
+            const id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                let r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8)
+                return v.toString(16)
             })
 
-            newUser.save((error) => {
-                if (error) {
-                    res.render("errorScreen", {
-                        message: error.toString(),
-                        link
-                    })
-                } else {
-                    res.redirect("/user/" + newUser._id)
-                }
+            pool.query("insert into users (id,firstName,lastName,email,age) values ($1,$2,$3,$4,$5)", [id, firstName, lastName, email, age])
+            .then(() => {
+                res.redirect("/user/" + id)
+            })
+            .catch(error => {
+                res.render("errorScreen", {
+                    message: error.toString(),
+                    link
+                })
             })
         }
     })
+    .catch(error => {
+        res.render("errorScreen", {
+            message: error.toString(),
+            link
+        })
+    })
+    .finally(() => console.log("New account requested"))
 }
 
 function search(req, res) {
     const { firstName, lastName } = req.body
     const link = getRefererPathUsingRequest(req)
 
-    let filter = {}
+    let query = "select * from users where "
+    let variables = []
 
     if (firstName) {
-        filter["firstName"] = firstName
+        variables.push(firstName)
+        query += `firstName = $${variables.length}`
+
+        if (lastName) {
+            variables.push(lastName)
+            query += ` and lastName = $${variables.length}`
+        }
+    } else if (lastName) {
+        variables.push(lastName)
+        query += `lastName = $${variables.length}`
+    } else {
+        res.render("errorScreen", {
+            message: error.toString(),
+            link
+        })
+        return
     }
 
-    if (lastName) {
-        filter["lastName"] = lastName
-    }
-
-    User.findOne(filter, (error, data) => {
-        if (error) { 
-            res.render("errorScreen", {
-                message: error.toString(),
-                link
-            })
-        } else if (data) {
-            console.log(data)
+    pool.query(query)
+    .then(data => {
+        if (data) {
+            console.log("Check if one or many: " + data)
             res.redirect("/user/" + data.id)
         } else {
             res.render("errorScreen", {
@@ -201,8 +213,14 @@ function search(req, res) {
                 link
             })
         }
-
     })
+    .catch(error => {
+        res.render("errorScreen", {
+            message: error.toString(),
+            link
+        })
+    })
+    .finally(() => console.log(`Search with ${firstName} ${lastName} requested`))
 }
 
 function updateUser(req, res) {
@@ -212,6 +230,37 @@ function updateUser(req, res) {
     const email = req.body.email
     const age = req.body.age
     const link = getRefererPathUsingRequest(req)
+
+    const arr = [{
+        key: "firstName",
+        value: firstName
+    }, {
+        key: "lastName",
+        value: lastName
+    }, {
+        key: "email",
+        value: email
+    }, {
+        key: "age",
+        value: age
+    }]
+
+    let query = "update users set "
+    let variables = []
+    let queryStarted = false
+
+    arr.forEach((item, index) => {
+        if (Boolean(item.value)) {
+            if (queryStarted) {
+                query += "and "
+            }
+
+            variables.push(item.value)
+            query += `${item.key} = $${variables.length} `
+
+            queryStarted = true
+        }
+    })
 
     if (!id) {
         res.render("errorScreen", {
@@ -224,19 +273,26 @@ function updateUser(req, res) {
             link
         })
     } else {
-        User.findOneAndUpdate({ _id : id }, { firstName, lastName, email, age }, { new : true }, (error, data) => {
-            if (error) {
+        pool.query(query)
+        .then(data => {
+            if (data) {
+                console.log(data)
+        
+                res.redirect("/user/" + id)
+            } else {
                 res.render("errorScreen", {
-                    message: error.toString(),
-                    link
+                    message: "Unable to update user. Please try again later"
                 })
-                return
             }
-
-            console.log(data)
-    
-            res.redirect("/user/" + id)
         })
+        .catch(error => {
+            res.render("errorScreen", {
+                message: error.toString(),
+                link
+            })
+            return
+        })
+        .finally(() => console.log("Something requested"))
     }
 }
 
@@ -249,16 +305,18 @@ function deleteUser(req, res) {
             link
         })
     } else {
-        User.deleteOne({ _id : id }, (error) => {
-            if (error) {
-                res.render("errorScreen", {
-                    message: error.toString(),
-                    link
-                })
-            } else {
-                res.redirect("/users")
-            }
+        pool.query("delete from users where id = $1", [id])
+        .then(() => {
+            console.log(`User with id ${id} was deleted`)
+            res.redirect("/users")
         })
+        .catch(error => {
+            res.render("errorScreen", {
+                message: error.toString(),
+                link
+            })
+        })
+        .finally(() => console.log(`Delete id ${id} requested`))
     }
 }
 
@@ -275,7 +333,9 @@ function addEndLogic(app) {
 }
 
 function closeServer() {
-    server.close()
+    pool.end(() => {
+        console.log("Pool closed")
+    })
 }
 
 const port = process.env.PORT || 3000
