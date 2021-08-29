@@ -4,7 +4,7 @@ const { Pool, Client } = require("pg")
 const baseUrl = process.env.DATABASE_URL//"postgres://postgres:postgress@localhost:5432/"
 console.log("Base url: " + baseUrl)
 const bufferUrl = baseUrl + "postgres"
-const dbUrl = baseUrl + "usermanager"
+const dbUrl = baseUrl + "d1bujrns9ecvjk"
 
 const bufferClient = new Client({
     connectionString: bufferUrl,
