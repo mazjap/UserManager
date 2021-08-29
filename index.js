@@ -1,14 +1,8 @@
 const express = require("express")
 const path = require("path")
 const { Pool, Client } = require("pg")
-const baseUrl = process.env.DATABASE_URL//"postgres://postgres:postgress@localhost:5432/"
-console.log("Base url: " + baseUrl)
-const bufferUrl = baseUrl + "postgres"
-const dbUrl = baseUrl + "d1bujrns9ecvjk"
-
-const bufferClient = new Client({
-    connectionString: bufferUrl,
-})
+const dbUrl = process.env.DATABASE_URL//"postgres://postgres:postgress@localhost:5432/"
+console.log("Db url: " + dbUrl)
 
 const pool = new Pool({
     connectionString: dbUrl,
@@ -16,17 +10,6 @@ const pool = new Pool({
 
 const port = process.env.PORT || 3000
 var server;
-
-bufferClient.connect()
-.catch(error => {})
-.finally(() => {
-    bufferClient.query("create database usermanager")
-    .catch(error => {})
-    .finally(() => {
-        bufferClient.end()
-        dbSetup(pool.connect())
-    })
-})
 
 const directories = {
     index: () => "/",
