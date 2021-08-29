@@ -14,6 +14,6 @@ html(lang="en")
             h3= "Find Account"
             +homeButton()
         form(action="/search", method="POST")
-            +labelInputPair("First name", "text", "firstName", "John", null, false)
-            +labelInputPair("Last name", "text", "lastName", "Smith", null, false)
+            +labelInputPair("First name", "text", "firstname", "John", null, false)
+            +labelInputPair("Last name", "text", "lastname", "Smith", null, false)
             button(type="submit") Find

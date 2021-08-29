@@ -1,15 +1,31 @@
-const userSchema = require("./user")
 const express = require("express")
 const path = require("path")
-const { Pool } = require("pg")
+const { Pool, Client } = require("pg")
+const baseUrl = "postgres://postgres:postgress@localhost:5432/"
+const bufferUrl = baseUrl + "postgres"
+const dbUrl = baseUrl + "usermanager"
 
-const dbUrl = "postgres://postgres:postgress@localhost:5432/user"
+const bufferClient = new Client({
+    connectionString: bufferUrl,
+})
 
 const pool = new Pool({
     connectionString: dbUrl,
 })
 
-dbSetup(pool.connect())
+const port = process.env.PORT || 3000
+var server;
+
+bufferClient.connect()
+.catch(error => console.log(error))
+.finally(() => {
+    bufferClient.query("create database usermanager")
+    .catch(error => console.log(error))
+    .finally(() => {
+        bufferClient.end()
+        dbSetup(pool.connect())
+    })
+})
 
 const directories = {
     index: () => "/",
@@ -43,7 +59,19 @@ function setup(app) {
 }
 
 function dbSetup(connection) {
-    connection.then(() => console.log("Database connected"))
+    connection.then(() => {
+        console.log("Database connected")
+
+        pool.query("create table if not exists users (firstname varchar not null, lastname varchar not null, email varchar not null, age int not null, id varchar primary key not null)")
+        .catch(error => console.log(error))
+        .finally(() => {
+            console.log("Created user table, if it didn't already exist.")
+
+            server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
+                console.log("App listening on port " + port)
+            })
+        })
+    })
     .catch(error => console.log(error))
 }
 
@@ -53,13 +81,14 @@ function createListeners(app) {
     })
 
     app.get(directories.users(), (req, res) => {
-        res.redirect("/users/firstName")
+        res.redirect("/users/firstname")
     })
 
     app.get(directories.sortedUsers("sortedBy"), (req, res) => {
-        const keys = ["firstName", "lastName", "email", "age"]
+        const keys = ["firstname", "lastname", "email", "age"]
         const validSortKeys = [...keys, ...keys.map(key => "-" + key)]
-        const sortKey = req.params.sortedBy
+        const sortKey = req.params.sortedBy.toLowerCase()
+        const link = getRefererPathUsingRequest(req)
         
         if (validSortKeys.includes(sortKey)) {
             let query = "select * from users order by "
@@ -70,10 +99,10 @@ function createListeners(app) {
                 query += sortKey + " ASC"
             }
 
+            console.log(query)
             pool.query(query)
-            .then(users => {
-                console.log(users)
-                res.render("users", { users })
+            .then(data => {
+                res.render("users", { users: data.rows })
             })
             .catch(error => {
                 res.render("errorScreen", {
@@ -101,10 +130,9 @@ function createListeners(app) {
         }
 
         pool.query("select * from users where id = $1", [id])
-        .then((user => {
-            console.log("Array or single user object? " + user)
-            if (user) {
-                res.render("userDetails", { user : data })
+        .then((response => {
+            if (response.rowCount > 0) {
+                res.render("userDetails", { user : response.rows[0] })
             } else {
                 res.render("errorScreen", {
                     message: "User with id " + id + " does not exist",
@@ -139,14 +167,14 @@ function createListeners(app) {
 }
 
 function createAccount(req, res) {
-    const { firstName, lastName, email, age } = req.body
+    const { firstname, lastname, email, age } = req.body
     const link = getRefererPathUsingRequest(req)
 
     pool.query("select email from users where email = $1", [email])
     .then(data => {
-        if (data) {
+        if (data.rowCount > 0) {
             res.render("errorScreen", {
-                message: "Email has already been taken",
+                message: `Email ${data} has already been taken`,
                 link
             })
         } else {
@@ -155,7 +183,7 @@ function createAccount(req, res) {
                 return v.toString(16)
             })
 
-            pool.query("insert into users (id,firstName,lastName,email,age) values ($1,$2,$3,$4,$5)", [id, firstName, lastName, email, age])
+            pool.query("insert into users (id,firstname,lastname,email,age) values ($1,$2,$3,$4,$5)", [id, firstname, lastname, email, age])
             .then(() => {
                 res.redirect("/user/" + id)
             })
@@ -177,39 +205,38 @@ function createAccount(req, res) {
 }
 
 function search(req, res) {
-    const { firstName, lastName } = req.body
+    const { firstname, lastname } = req.body
     const link = getRefererPathUsingRequest(req)
 
     let query = "select * from users where "
     let variables = []
 
-    if (firstName) {
-        variables.push(firstName)
-        query += `firstName = $${variables.length}`
+    if (firstname) {
+        variables.push(firstname)
+        query += `firstname = $${variables.length}`
 
-        if (lastName) {
-            variables.push(lastName)
-            query += ` and lastName = $${variables.length}`
+        if (lastname) {
+            variables.push(lastname)
+            query += ` and lastname = $${variables.length}`
         }
-    } else if (lastName) {
-        variables.push(lastName)
-        query += `lastName = $${variables.length}`
+    } else if (lastname) {
+        variables.push(lastname)
+        query += `lastname = $${variables.length}`
     } else {
         res.render("errorScreen", {
-            message: error.toString(),
+            message: "You must provide a first and/or last name",
             link
         })
         return
     }
 
-    pool.query(query)
+    pool.query(query, variables)
     .then(data => {
-        if (data) {
-            console.log("Check if one or many: " + data)
-            res.redirect("/user/" + data.id)
+        if (data.rowCount > 0) {
+            res.redirect("/user/" + data.rows[0].id)
         } else {
             res.render("errorScreen", {
-                message: "No user with firstName: " + firstName + ", lastName: " + lastName,
+                message: "No user with firstname: " + firstname + ", lastname: " + lastname,
                 link
             })
         }
@@ -220,23 +247,23 @@ function search(req, res) {
             link
         })
     })
-    .finally(() => console.log(`Search with ${firstName} ${lastName} requested`))
+    .finally(() => console.log(`Search with ${firstname} ${lastname} requested`))
 }
 
 function updateUser(req, res) {
     const id = req.body.id
-    const firstName = req.body.firstName
-    const lastName = req.body.lastName
+    const firstname = req.body.firstname
+    const lastname = req.body.lastname
     const email = req.body.email
     const age = req.body.age
     const link = getRefererPathUsingRequest(req)
 
     const arr = [{
-        key: "firstName",
-        value: firstName
+        key: "firstname",
+        value: firstname
     }, {
-        key: "lastName",
-        value: lastName
+        key: "lastname",
+        value: lastname
     }, {
         key: "email",
         value: email
@@ -249,8 +276,8 @@ function updateUser(req, res) {
     let variables = []
     let queryStarted = false
 
-    arr.forEach((item, index) => {
-        if (Boolean(item.value)) {
+    arr.forEach((item) => {
+        if (item.value != null) {
             if (queryStarted) {
                 query += "and "
             }
@@ -273,17 +300,12 @@ function updateUser(req, res) {
             link
         })
     } else {
-        pool.query(query)
+        console.log(query)
+        pool.query(query, variables)
         .then(data => {
-            if (data) {
-                console.log(data)
-        
-                res.redirect("/user/" + id)
-            } else {
-                res.render("errorScreen", {
-                    message: "Unable to update user. Please try again later"
-                })
-            }
+            console.log("Updated user:")
+            console.log(data)
+            res.redirect("/user/" + id)
         })
         .catch(error => {
             res.render("errorScreen", {
@@ -292,7 +314,7 @@ function updateUser(req, res) {
             })
             return
         })
-        .finally(() => console.log("Something requested"))
+        .finally(() => console.log("User update requested"))
     }
 }
 
@@ -316,7 +338,7 @@ function deleteUser(req, res) {
                 link
             })
         })
-        .finally(() => console.log(`Delete id ${id} requested`))
+        .finally(() => console.log(`Delete user with id ${id} requested`))
     }
 }
 
@@ -333,13 +355,8 @@ function addEndLogic(app) {
 }
 
 function closeServer() {
+    server.close()
     pool.end(() => {
         console.log("Pool closed")
     })
 }
-
-const port = process.env.PORT || 3000
-
-var server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
-    console.log("App listening on port " + port)
-})

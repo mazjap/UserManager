@@ -16,8 +16,8 @@ html(lang="en")
                 button(type="submit") Delete
         form(action="/update", method="post")
             p= "Id: " + user.id
-            +labelInputPair("First name", "text", "firstName", user.firstName, user.firstName, false)
-            +labelInputPair("Last Name", "text", "lastName", "Smith", user.lastName, user.lastName, false)
+            +labelInputPair("First name", "text", "firstname", user.firstname, user.firstname, false)
+            +labelInputPair("Last Name", "text", "lastname", "Smith", user.lastname, user.lastname, false)
             +labelInputPair("Email", "text", "email", user.email, user.email, false)
             +labelInputPair("Age", "text", "age", user.age, user.age, false)
             // Hidden form id value

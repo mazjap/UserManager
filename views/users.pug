@@ -16,20 +16,20 @@ html(lang="en")
 
             p="Sort"
 
-            form(action="/users/firstName", method="get")
-                input(type="hidden", name="firstName", value="firstName")
+            form(action="/users/firstname", method="get")
+                input(type="hidden", name="firstname", value="firstname")
                 button(type="submit") First Name Ascending
 
-            form(action="/users/-firstName", method="get")
-                input(type="hidden", name="firstName", value="firstName")
+            form(action="/users/-firstname", method="get")
+                input(type="hidden", name="firstname", value="firstname")
                 button(type="submit") First Name Descending
 
-            form(action="/users/lastName", method="get")
-                input(type="hidden", name="lastName", value="lastName")
+            form(action="/users/lastname", method="get")
+                input(type="hidden", name="lastname", value="lastname")
                 button(type="submit") Last Name Ascending
 
-            form(action="/users/-lastName", method="get")
-                input(type="hidden", name="lastName", value="lastName")
+            form(action="/users/-lastname", method="get")
+                input(type="hidden", name="lastname", value="lastname")
                 button(type="submit") Last Name Descending
             
             form(action="/users/email", method="get")
@@ -53,7 +53,7 @@ html(lang="en")
                     li 
                         a(href="/user/" + usr.id)
                             div
-                                h5= "Name: " + usr.firstName + " " + usr.lastName 
+                                h5= "Name: " + usr.firstname + " " + usr.lastname 
                                 p= "Email: " + usr.email 
                                 p= "Age: " + usr.age
                                 form(action="/delete/" + usr.id, method="post")
