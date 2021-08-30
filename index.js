@@ -6,6 +6,7 @@ console.log("Db url: " + dbUrl)
 
 const pool = new Pool({
     connectionString: dbUrl,
+    ssl: true
 })
 
 console.log("Created pool")
@@ -62,6 +63,8 @@ function dbSetup(connection) {
         .catch(error => console.log(error))
         .finally(() => {
             console.log("Created user table, if it didn't already exist.")
+
+            release()
 
             server = addEndLogic(createListeßners(setup(express()))).listen(port, () => {
                 console.log("App listening on port " + port)
