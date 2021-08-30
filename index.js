@@ -8,8 +8,12 @@ const pool = new Pool({
     connectionString: dbUrl,
 })
 
+console.log("Created pool")
+
 const port = process.env.PORT || 3000
 var server;
+
+dbSetup(pool)
 
 const directories = {
     index: () => "/",
@@ -41,8 +45,6 @@ function setup(app) {
     app.use(express.json())
     app.use(express.urlencoded({ extended: true }))
 
-    dbSetup(pool)
-
     return app
 }
 
@@ -56,7 +58,7 @@ function dbSetup(connection) {
         .catch(error => console.log(error))
         .finally(() => {
             console.log("Created user table, if it didn't already exist.")
-            
+
             server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
                 console.log("App listening on port " + port)
             })
