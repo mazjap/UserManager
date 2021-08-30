@@ -301,6 +301,7 @@ function updateUser(req, res) {
         })
     } else {
         console.log(query)
+        console.log(variables)
         pool.query(query, variables)
         .then(data => {
             console.log("Updated user:")
