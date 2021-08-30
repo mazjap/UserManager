@@ -55,7 +55,7 @@ function dbSetup(connection) {
         console.log("Database connected")
 
         if (error) {
-            return console.error('Error acquiring client', err.stack)
+            return console.error('Error acquiring client', error.stack)
         }
 
         client.query("create table if not exists users (firstname varchar not null, lastname varchar not null, email varchar not null, age int not null, id varchar primary key not null)")
@@ -63,7 +63,7 @@ function dbSetup(connection) {
         .finally(() => {
             console.log("Created user table, if it didn't already exist.")
 
-            server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
+            server = addEndLogic(createListeßners(setup(express()))).listen(port, () => {
                 console.log("App listening on port " + port)
             })
         })
