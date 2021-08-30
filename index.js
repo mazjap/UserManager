@@ -1,6 +1,6 @@
 const express = require("express")
 const path = require("path")
-const { Pool, Client } = require("pg")
+const { Pool } = require("pg")
 const dbUrl = process.env.DATABASE_URL//"postgres://postgres:postgress@localhost:5432/"
 console.log("Db url: " + dbUrl)
 
@@ -38,6 +38,8 @@ function setup(app) {
 
     app.use(express.json())
     app.use(express.urlencoded({ extended: true }))
+
+    dbSetup(pool)
 
     return app
 }
