@@ -66,7 +66,7 @@ function dbSetup(connection) {
 
             release()
 
-            server = addEndLogic(createListeßners(setup(express()))).listen(port, () => {
+            server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
                 console.log("App listening on port " + port)
             })
         })
