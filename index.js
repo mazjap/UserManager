@@ -300,8 +300,8 @@ function updateUser(req, res) {
             link
         })
     } else {
-        query += " where id = $" + variables.length
         variables.push(id)
+        query += " where id = $" + variables.length
 
         console.log(query)
         console.log(variables)
