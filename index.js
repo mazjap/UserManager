@@ -6,7 +6,7 @@ console.log("Db url: " + dbUrl)
 
 const pool = new Pool({
     connectionString: dbUrl,
-    ssl: true
+    ssl: { rejectUnauthorized: false }
 })
 
 console.log("Created pool")
