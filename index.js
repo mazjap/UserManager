@@ -279,7 +279,7 @@ function updateUser(req, res) {
     arr.forEach((item) => {
         if (item.value != null) {
             if (queryStarted) {
-                query += "and "
+                query += ", "
             }
 
             variables.push(item.value)
@@ -313,6 +313,7 @@ function updateUser(req, res) {
             res.redirect("/user/" + id)
         })
         .catch(error => {
+            console.log("Hit error statement")
             res.render("errorScreen", {
                 message: error.toString(),
                 link
