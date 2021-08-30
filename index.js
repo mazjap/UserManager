@@ -300,10 +300,11 @@ function updateUser(req, res) {
             link
         })
     } else {
-        console.log(query)
-        console.log(variables)
         query += " where id = $" + variables.length
         variables.push(id)
+
+        console.log(query)
+        console.log(variables)
 
         pool.query(query, variables)
         .then(data => {
