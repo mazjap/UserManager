@@ -174,7 +174,7 @@ function createAccount(req, res) {
     .then(data => {
         if (data.rowCount > 0) {
             res.render("errorScreen", {
-                message: `Email ${data} has already been taken`,
+                message: `Email ${email} has already been taken`,
                 link
             })
         } else {
