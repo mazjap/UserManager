@@ -33,6 +33,8 @@ function getRefererPathUsingRequest(request) {
 }
 
 function setup(app) {
+    console.log("Setting up app")
+
     app.set("views", path.join(__dirname, "views"))
     app.set("view engine", "pug")
 
@@ -45,6 +47,8 @@ function setup(app) {
 }
 
 function dbSetup(connection) {
+    console.log("Setting up database")
+
     connection.then(() => {
         console.log("Database connected")
 
@@ -52,7 +56,7 @@ function dbSetup(connection) {
         .catch(error => console.log(error))
         .finally(() => {
             console.log("Created user table, if it didn't already exist.")
-
+            
             server = addEndLogic(createListeners(setup(express()))).listen(port, () => {
                 console.log("App listening on port " + port)
             })
@@ -62,6 +66,8 @@ function dbSetup(connection) {
 }
 
 function createListeners(app) {
+    console.log("Creating endpoints")
+
     app.get(directories.index(), (req, res) => {
         res.render("index")
     })
