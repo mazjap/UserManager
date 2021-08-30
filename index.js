@@ -51,10 +51,14 @@ function setup(app) {
 function dbSetup(connection) {
     console.log("Setting up database")
 
-    connection.then(() => {
+    connection.connect((error, client, release) => {
         console.log("Database connected")
 
-        pool.query("create table if not exists users (firstname varchar not null, lastname varchar not null, email varchar not null, age int not null, id varchar primary key not null)")
+        if (error) {
+            return console.error('Error acquiring client', err.stack)
+        }
+
+        client.query("create table if not exists users (firstname varchar not null, lastname varchar not null, email varchar not null, age int not null, id varchar primary key not null)")
         .catch(error => console.log(error))
         .finally(() => {
             console.log("Created user table, if it didn't already exist.")
@@ -64,7 +68,6 @@ function dbSetup(connection) {
             })
         })
     })
-    .catch(error => console.log(error))
 }
 
 function createListeners(app) {
